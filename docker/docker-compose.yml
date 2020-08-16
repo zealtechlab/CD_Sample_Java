@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  myloginapp:
+    build: .
+    container_name: myloginapp
+    hostname: myloginapp
+    image: myloginapp:mycicd
+    ports:
+      - "38080:8080"

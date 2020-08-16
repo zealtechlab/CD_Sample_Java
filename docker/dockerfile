@@ -1,0 +1,7 @@
+FROM tomcat:9.0-alpine
+
+ADD http://localhost:28081/repository/CI_Sample_Java/com/ztl/SampleLogin/LoginWebApp/1.0-SNAPSHOT/LoginWebApp-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/LoginWebApp.war
+
+EXPOSE 8080
+
+CMD ["catalina.sh", "run"]
