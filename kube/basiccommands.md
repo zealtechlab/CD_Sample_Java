@@ -87,27 +87,27 @@ microk8s ctr images ls
 
 1) Start a local registry container:
 
-```docker run --name localregistry -d -p 55000:5000 --restart=always --name registry registry:2```
+```docker run --name localregistry -d -p 15000:5000 --restart=always --name registry registry:2```
 
 2) Do docker images to find out the REPOSITORY and TAG of your local image. Then create a new tag for your local image :
 
-```docker tag <local-image-repository>:<local-image-tag> localhost:55000/<local-image-name>```
+```docker tag <local-image-repository>:<local-image-tag> localhost:15000/<local-image-name>```
 Example:
-```docker tag myloginapp:mycicd localhost:55000/myloginapp:mycicd```
+```docker tag myloginapp:mycicd localhost:15000/myloginapp:mycicd```
 or
-```docker tag nginx:latest localhost:55000/nginx:latest```
+```docker tag nginx:latest localhost:15000/nginx:latest```
 
 If TAG for your local image is <none>, you can simply do:
 
-```docker tag <local-image-repository> localhost:55000/<local-image-name>```
+```docker tag <local-image-repository> localhost:15000/<local-image-name>```
 
 3) Push to local registry :
 
-```docker push localhost:55000/<local-image-name>```
+```docker push localhost:15000/<local-image-name>```
 Example:
-```docker push localhost:55000/nginx:alpine```
+```docker push localhost:15000/nginx:alpine```
 or
-```docker push localhost:55000/myloginapp:mycicd```
+```docker push localhost:15000/myloginapp:mycicd```
 
 This will automatically add the latest tag to localhost:5000/<local-image-name>. Can check by doing docker images.
 
