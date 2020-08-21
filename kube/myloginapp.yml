@@ -1,12 +1,13 @@
-apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+apiVersion: v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment
 metadata:
   name: myloginapp-deployment
+  namespace: default
 spec:
+  replicas: 2 # tells deployment to run 2 pods matching the template
   selector:
     matchLabels:
       app: myloginapp
-  # replicas: 2 # tells deployment to run 2 pods matching the template
   template:
     metadata:
       labels:

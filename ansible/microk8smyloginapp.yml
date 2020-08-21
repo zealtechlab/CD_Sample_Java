@@ -1,0 +1,111 @@
+---
+- hosts: targets
+  gather_facts: true
+  
+  #Variables
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    image_name: myloginapp
+    image_tag: mycicd
+    replicas: 2
+    k8s_kubeconfig: '.kubeconfig'
+    compose_file: ../docker/docker-compose.yml
+    kube_deploy_file: ../kube/myloginappapp.yml
+    
+  # Pre-Tasks to validate if microk8s is running
+  pre_tasks:
+    - name: Check Microk8s's status.
+      command: /snap/bin/microk8s.status --wait-ready
+      register: microk8s_status
+      changed_when: false
+      ignore_errors: true
+    # Otherwise will start microk8s
+    - name: Start microk8s if it's not running.
+      command: /snap/bin/microk8s.start
+      when: "not microk8s_status.stdout or 'running' not in microk8s_status.stdout"
+
+    - name: Check that the kube conf exists
+      stat:
+        path: '{{ k8s_kubeconfig }}'
+      register: stat_result
+      
+    # Capture microk8s config, if it doesnt exist already
+    - name: Get microk8s config.
+      shell: |
+        /snap/bin/microk8s.config | tee {{ k8s_kubeconfig }}
+      changed_when: false
+      when: not stat_result.stat.exists
+  
+  # Check existing images
+  tasks:
+    - name: Get existing image hash.
+      shell: |
+        eval $(echo prande07 | sudo -S /snap/bin/microk8s.ctr images list | grep {{ image_name }}:{{ image_tag }})
+        /snap/bin/docker images -q {{ image_name }}:{{ image_tag }}
+      register: image_hash
+      changed_when: false
+    # Otherwise will create an image from Dockerfile location
+    - name: Build image if it's not already built.
+      shell: |
+        /snap/bin/docker-compose -f {{ compose_file }} build
+        /snap/bin/docker tag {{ image_name }}:{{ image_tag }} localhost:32000/{{ image_name }}:{{ image_tag }}
+        /snap/bin/docker push localhost:32000/{{ image_name }}:{{ image_tag }}
+      when: not image_hash.stdout
+    
+    - name: Ensure default Namespace exists.
+      k8s:
+        kubeconfig: '{{ k8s_kubeconfig }}'
+        api_version: v1
+        kind: Namespace
+        name: default
+        state: present
+
+    # Create Kubernetes resources to run myloginapp.
+    - name: Create a Deployment for myloginapp.
+      k8s:
+        kubeconfig: '{{ k8s_kubeconfig }}'
+        api_version: v1
+        state: present
+        src: '{{ kube_deploy_file }}'
+    
+    # Create Kubernetes Service (DNS required)
+    - name: Create a Service for myloginapp.
+      k8s:
+        kubeconfig: '{{ k8s_kubeconfig }}'
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: myloginapp
+            namespace: default
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 8180
+              targetPort: 8080
+            selector:
+              app: myloginapp
+
+  post_tasks:
+    # Example expose using microk8s services
+    - name: Expose myloginapp on the host via microk8s.
+      shell: | 
+        echo prande07 | sudo -S /snap/bin/microk8s.kubectl get service myloginapp
+      changed_when: false
+      register: microk8s_service
+      
+    - debug:
+        msg: "myloginapp URL: {{ microk8s_service['stdout_lines'] }}, {{ microk8s_service['stdout_lines'][1].split()[3] }}:{{ microk8s_service['stdout_lines'][1].split()[4].split(':')[0] }}"
+
+    - name: Verify myloginapp is responding.
+      uri:
+        url: "http://{{ microk8s_service['stdout_lines'][1].split()[3] }}:{{ microk8s_service['stdout_lines'][1].split()[4].split(':')[0] }}/LoginWebApp/"
+        return_content: true
+      register: myloginapp_response
+      until: myloginapp_response.status == 200
+      retries: 10 # 720 * 5 seconds = 1hour (60*60/5)
+      delay: 5 # Every 5 seconds
+      failed_when: "'Login Page' not in  myloginapp_response.content"
+    - debug:
+        msg: "Testing URL myloginapp Requested: {{myloginapp_response.content}} Status: {{myloginapp_response.status}}"
