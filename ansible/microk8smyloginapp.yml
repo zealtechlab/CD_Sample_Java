@@ -104,7 +104,7 @@
 
     - name: Verify myloginapp is responding.
       uri:
-        url: "http://{{ microk8s_service['stdout_lines'][1].split()[3] }}:{{ microk8s_service['stdout_lines'][1].split()[4].split(':')[0] }}"
+        url: "http://{{ microk8s_service['stdout_lines'][1].split()[3] }}:{{ microk8s_service['stdout_lines'][1].split()[4].split(':')[0] }}/LoginWebApp/"
         return_content: true
       register: myloginapp_response
       until: myloginapp_response.status == 200
