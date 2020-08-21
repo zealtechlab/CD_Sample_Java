@@ -44,7 +44,7 @@ pipeline {
         stage ('Deploy') {
            steps {
             //    ansiblePlaybook {
-            //             playbook('ansible/microk8sbloggerappplaybook.yml')
+            //             playbook('ansible/microk8smyloginapp.yml')
             //             inventoryPath('hosts.ini')
                         // ansibleName('1.9.4')
                         // tags('one,two')
@@ -61,7 +61,7 @@ pipeline {
                    ansible-playbook \
                         -i hosts.ini \
                         -e "ansible_python_interpreter=/usr/bin/python3 kube_deploy_file=kube/myloginapp.yml" \
-                        ansible/microk8sbloggerappplaybook.yml
+                        ansible/microk8smyloginapp.yml
                     '''
                 }
            }
